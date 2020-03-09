@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using Audio;
-using Audio.Configuration;
-using GolemsEnums;
+﻿using GolemsEnums;
+using System.Collections;
 using UnityEngine;
 
 namespace Golems {
@@ -92,41 +90,46 @@ namespace Golems {
 		}
 
 		protected virtual void Update() {
-			if(Debug.isDebugBuild) {
-				if(Input.GetKeyDown(KeyCode.M)) {
-					CanMove = !CanMove;
-				}
+			#if DEBUG
+			if(Input.GetKeyDown(KeyCode.M)) {
+				CanMove = !CanMove;
 			}
+			#endif
 
 			if (Health <= 0)
 				isDead = true;
 
-			if (!isDead) {
-				if (player.Health > 0) {
-					if (IsInAttackRange && canAttack &&
-					    (actualState == GolemStates.Idle || actualState == GolemStates.Walking) && !takingDamage) {
-						if (canAttack) {
-							if (Debug.isDebugBuild) Debug.Log("Attack");
-							Attack();
+			if (player) {
+				if (!isDead) {
+					if (player.Health > 0) {
+						if (IsInAttackRange && canAttack &&
+						    (actualState == GolemStates.Idle || actualState == GolemStates.Walking) && !takingDamage) {
+							if (canAttack) {
+								if (Debug.isDebugBuild) Debug.Log("Attack");
+								Attack();
+							}
+						} else if (player.Health > 0 && IsChasing /*&& (!isSpecialAttackTriggered || !canAttack)*/ &&
+						           (actualState == GolemStates.Idle ||
+						            actualState == GolemStates.Walking) /* && !takingDamage*/) {
+							Walk();
 						}
-					} else if (player.Health > 0 && IsChasing /*&& (!isSpecialAttackTriggered || !canAttack)*/ &&
-					           (actualState == GolemStates.Idle ||
-					            actualState == GolemStates.Walking) /* && !takingDamage*/) {
-						Walk();
+					} else //When the player is dead
+					{
+						ChangeState(GolemStates.Idle);
+						SetAnimationBool(WALKING_BOOL, false);
 					}
-				} else //When the player is dead
-				{
-					ChangeState(GolemStates.Idle);
-					SetAnimationBool(WALKING_BOOL, false);
-				}
-			} else {
-				if (!animDeadPlayed) {
-					Die();
+				} else {
+					if (!animDeadPlayed) {
+						Die();
+					}
 				}
 			}
 		}
 
-		private void OnEnable() => healthBarHudItem.SetActive(true);
+		private void OnEnable() {
+			if(healthBarHudItem) healthBarHudItem.SetActive(true);
+			else Debug.LogError($"healthBarHudItem has not been assigned", this);
+		}
 
 		public void SetPlayer(PlayerController _player) {
 			player = _player;
